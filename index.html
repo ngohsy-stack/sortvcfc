@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cost Classification Interactive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Branding Colors */
+            --brand-teal: rgb(47, 130, 117); /* Pantone 335 */
+            --brand-teal-light: rgba(47, 130, 117, 0.1);
+            --brand-black: rgb(35, 31, 32); 
+            --brand-white: rgb(255, 255, 255); 
+            --gray-bg: #f6f7f9;
+            --error-red: #d92916;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: var(--brand-white);
+            color: var(--brand-black);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            width: 100%;
+            background: var(--brand-white);
+            padding: 20px 0;
+            border-bottom: 1px solid #d6d8da;
+            display: flex;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 12px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #e3e5e8;
+        }
+
+        .dot.active { background-color: var(--brand-teal); transform: scale(1.2); }
+        .dot.completed { background-color: var(--brand-black); }
+
+        .quiz-wrapper {
+            max-width: 800px;
+            width: 95%;
+            margin: 40px 0 140px 0;
+        }
+
+        /* Main Card with Teal Border */
+        .card {
+            padding: 30px;
+            border: 2px solid var(--brand-teal);
+            border-radius: 12px;
+            background: var(--brand-white);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .definition-box {
+            background-color: var(--gray-bg);
+            border-left: 6px solid var(--brand-teal);
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .instruction {
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        /* Item Bank */
+        .items-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            padding: 25px;
+            border: 2px dashed var(--brand-teal);
+            border-radius: 8px;
+            margin-bottom: 30px;
+            background-color: var(--brand-teal-light);
+        }
+
+        .draggable-item {
+            padding: 12px 20px;
+            background: var(--brand-white);
+            border: 2px solid var(--brand-teal); /* Teal borders on options */
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .draggable-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .draggable-item.selected {
+            background-color: var(--brand-teal);
+            color: white;
+            border-color: var(--brand-black);
+        }
+
+        /* Buckets */
+        .buckets-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .bucket {
+            border: 2px solid var(--brand-teal); /* Teal borders on buckets */
+            border-radius: 12px;
+            min-height: 200px;
+            padding: 20px;
+            background: var(--brand-white);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .bucket.highlight {
+            background-color: var(--brand-teal-light);
+            border-style: solid;
+            transform: scale(1.02);
+        }
+
+        .bucket h3 {
+            margin-top: 0;
+            color: var(--brand-teal);
+            text-transform: uppercase;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--brand-teal-light);
+            width: 100%;
+            text-align: center;
+        }
+
+        .bucket-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: var(--brand-white);
+            border-top: 1px solid #d6d8da;
+            padding: 25px 0;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .action-content {
+            max-width: 800px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feedback-msg { font-weight: 700; font-size: 1.2rem; }
+        .feedback-msg.correct { color: var(--brand-teal); }
+        .feedback-msg.incorrect { color: var(--error-red); }
+
+        .btn {
+            padding: 12px 35px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary { background-color: var(--brand-teal); color: var(--brand-white); }
+        .btn-primary:disabled { background-color: #d6d8da; cursor: not-allowed; color: #888; }
+
+        .hidden { display: none; }
+
+        @media (max-width: 600px) {
+            .buckets-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="progress-dots">
+        <div class="dot active"></div>
+    </div>
+</div>
+
+<div class="quiz-wrapper" id="quiz-container">
+    <div class="card">
+        <div class="definition-box">
+            <strong>Variable cost:</strong> Cost that varies with output level. It is not incurred when production stops.<br>
+            <strong>Fixed cost:</strong> Cost that does not vary with output. Must be paid even if production is zero.
+        </div>
+
+        <p class="instruction">Click a cost to select it, then click the correct bucket:</p>
+
+        <div class="items-bank" id="item-bank">
+            <!-- Items a through e will be injected here -->
+        </div>
+
+        <div class="buckets-container">
+            <div class="bucket" onclick="placeInBucket('fixed')" id="bucket-fixed">
+                <h3>Fixed Costs</h3>
+                <div class="bucket-content" id="content-fixed"></div>
+            </div>
+            <div class="bucket" onclick="placeInBucket('variable')" id="bucket-variable">
+                <h3>Variable Costs</h3>
+                <div class="bucket-content" id="content-variable"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="action-bar">
+    <div class="action-content">
+        <div id="feedback-text" class="feedback-msg"></div>
+        <button id="check-btn" class="btn btn-primary">Check Answer</button>
+    </div>
+</div>
+
+<script>
+    const costData = [
+        { id: 'a', text: "a) The cost of cocoa", type: "variable" },
+        { id: 'b', text: "b) Advertising campaign", type: "fixed" },
+        { id: 'c', text: "c) Wages", type: "variable" },
+        { id: 'd', text: "d) Rent for a shop", type: "fixed" },
+        { id: 'e', text: "e) Mortgage installments", type: "fixed" }
+    ];
+
+    let selectedItem = null;
+    let placements = { fixed: [], variable: [] };
+
+    function init() {
+        const bank = document.getElementById('item-bank');
+        costData.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'draggable-item';
+            div.innerText = item.text;
+            div.id = `item-${item.id}`;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                handleItemClick(item, div);
+            };
+            bank.appendChild(div);
+        });
+    }
+
+    function handleItemClick(item, element) {
+        // Reset selection
+        document.querySelectorAll('.draggable-item').forEach(el => el.classList.remove('selected'));
+        
+        selectedItem = item;
+        element.classList.add('selected');
+        
+        // Visual cue for buckets
+        document.querySelectorAll('.bucket').forEach(b => b.classList.add('highlight'));
+    }
+
+    function placeInBucket(bucketType) {
+        if (!selectedItem) return;
+
+        // Remove from current arrays if moving
+        placements.fixed = placements.fixed.filter(i => i.id !== selectedItem.id);
+        placements.variable = placements.variable.filter(i => i.id !== selectedItem.id);
+
+        // Add to targeted bucket
+        placements[bucketType].push(selectedItem);
+
+        renderUI();
+        
+        // Reset state
+        selectedItem = null;
+        document.querySelectorAll('.bucket').forEach(b => b.classList.remove('highlight'));
+        document.getElementById('feedback-text').innerText = "";
+    }
+
+    function renderUI() {
+        const bank = document.getElementById('item-bank');
+        const fixBox = document.getElementById('content-fixed');
+        const varBox = document.getElementById('content-variable');
+        
+        bank.innerHTML = '';
+        fixBox.innerHTML = '';
+        varBox.innerHTML = '';
+
+        const placedIds = [...placements.fixed, ...placements.variable].map(i => i.id);
+
+        // Render Bank
+        costData.forEach(item => {
+            if (!placedIds.includes(item.id)) {
+                bank.appendChild(createItemEl(item));
+            }
+        });
+
+        // Render Buckets
+        placements.fixed.forEach(item => fixBox.appendChild(createItemEl(item)));
+        placements.variable.forEach(item => varBox.appendChild(createItemEl(item)));
+    }
+
+    function createItemEl(item) {
+        const div = document.createElement('div');
+        div.className = 'draggable-item';
+        div.innerText = item.text;
+        div.onclick = (e) => {
+            e.stopPropagation();
+            handleItemClick(item, div);
+        };
+        return div;
+    }
+
+    document.getElementById('check-btn').onclick = () => {
+        const totalPlaced = placements.fixed.length + placements.variable.length;
+        if (totalPlaced < costData.length) {
+            document.getElementById('feedback-text').innerHTML = "<span class='incorrect'>Place all items first!</span>";
+            return;
+        }
+
+        let errors = 0;
+        placements.fixed.forEach(i => { if(i.type !== 'fixed') errors++; });
+        placements.variable.forEach(i => { if(i.type !== 'variable') errors++; });
+
+        if (errors === 0) {
+            document.getElementById('feedback-text').innerHTML = "<span class='correct'>✨ All correct!</span>";
+            document.getElementById('check-btn').innerText = "Finish";
+            document.getElementById('check-btn').onclick = () => {
+                document.getElementById('quiz-container').innerHTML = `
+                    <div class="card" style="text-align:center; padding: 60px 20px;">
+                        <h1 style="font-size: 4rem; margin:0; color: var(--brand-teal);">✓</h1>
+                        <h2 style="font-size: 2rem; margin-top:10px;">Practice Complete!</h2>
+                        <button class="btn btn-primary" onclick="location.reload()">Restart</button>
+                    </div>
+                `;
+                document.querySelector('.action-bar').style.display = 'none';
+                document.querySelector('.dot').className = 'dot completed';
+            };
+        } else {
+            document.getElementById('feedback-text').innerHTML = "<span class='incorrect'>❌ Some items are incorrect. Try again!</span>";
+        }
+    };
+
+    init();
+</script>
+
+</body>
+</html>
